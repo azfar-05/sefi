@@ -1,13 +1,31 @@
 import { useNavigate } from "react-router-dom";
+
 export default function Landing() {
   const navigate = useNavigate();
+
+  const scrollToFeatures = () => {
+    const el = document.getElementById("features");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* NAVBAR */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-white/10">
-        <h1 className="text-lg font-semibold">SEFI</h1>
-        <button className="text-sm border border-white/20 px-4 py-2 rounded-md">
-          Get Started
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/10">
+        {/* LOGO */}
+        <button
+          onClick={() => navigate("/")}
+          className="text-xl font-semibold tracking-tight hover:opacity-80 transition"
+        >
+          SEFI
+        </button>
+
+        {/* NAV CTA */}
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="text-sm border border-white/20 px-4 py-2 rounded-md hover:bg-white/10 transition"
+        >
+          Explore
         </button>
       </nav>
 
@@ -33,6 +51,7 @@ export default function Landing() {
 
         {/* CTA */}
         <div className="mt-10 flex gap-4">
+          {/* PRIMARY */}
           <button
             onClick={() => navigate("/dashboard")}
             className="bg-white text-black px-6 py-3 rounded-md font-medium hover:bg-white/90 transition"
@@ -40,15 +59,22 @@ export default function Landing() {
             Explore Dashboard
           </button>
 
-          <button className="border border-white/20 px-6 py-3 rounded-md hover:bg-white/10 transition">
-            View Insights
+          {/* SECONDARY */}
+          <button
+            onClick={scrollToFeatures}
+            className="border border-white/20 px-6 py-3 rounded-md hover:bg-white/10 transition"
+          >
+            Learn More
           </button>
         </div>
       </section>
+
       {/* FEATURES */}
-      <section className="px-8 pb-24 max-w-6xl mx-auto">
+      <section
+        id="features"
+        className="px-8 pb-24 max-w-6xl mx-auto scroll-mt-24"
+      >
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Card 1 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">Failure Trends</h3>
             <p className="mt-2 text-sm text-white/60">
@@ -57,7 +83,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Card 2 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">Flaky Tests</h3>
             <p className="mt-2 text-sm text-white/60">
@@ -66,7 +91,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Card 3 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">Regression Commits</h3>
             <p className="mt-2 text-sm text-white/60">
@@ -75,7 +99,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Card 4 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">File Risk Analysis</h3>
             <p className="mt-2 text-sm text-white/60">
@@ -83,7 +106,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Card 5 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">MTTR Insights</h3>
             <p className="mt-2 text-sm text-white/60">
@@ -91,7 +113,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Card 6 */}
           <div className="p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
             <h3 className="text-lg font-semibold">Commit Chain Analysis</h3>
             <p className="mt-2 text-sm text-white/60">

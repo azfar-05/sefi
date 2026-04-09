@@ -15,11 +15,15 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const [mttr, setMttr] = useState<string>("--");
+
+  // 📊 FAILURE TRENDS
   useEffect(() => {
     fetch("http://localhost:5001/api/ci/failure-trends")
       .then((res) => res.json())
       .then((raw) => {
         const formatted = raw.map((d: any) => ({
+          rawDate: d.day,
           date: new Date(d.day).toLocaleDateString(),
           failures: Number(d.failed_runs),
         }));
@@ -28,11 +32,39 @@ export default function Dashboard() {
       .catch((err) => console.error(err));
   }, []);
 
+  // 🛠️ MTTR (REAL)
+  useEffect(() => {
+    fetch("http://localhost:5001/api/bugs/resolution-times")
+      .then((res) => res.json())
+      .then((raw) => {
+        if (!raw.length) {
+          setMttr("--");
+          return;
+        }
+
+        const avg =
+          raw.reduce(
+            (sum: number, b: any) =>
+              sum + Number(b.resolution_time_days),
+            0
+          ) / raw.length;
+
+        setMttr(avg.toFixed(1) + " days");
+      })
+      .catch((err) => {
+        console.error(err);
+        setMttr("--");
+      });
+  }, []);
+
+  // ✅ FILTER
   const filteredData = data.filter((d) => {
     if (!startDate || !endDate) return true;
 
-    const current = new Date(d.date);
-    return current >= new Date(startDate) && current <= new Date(endDate);
+    return (
+      new Date(d.rawDate) >= new Date(startDate) &&
+      new Date(d.rawDate) <= new Date(endDate)
+    );
   });
 
   const totalFailures = filteredData.reduce((sum, d) => sum + d.failures, 0);
@@ -47,76 +79,87 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       {/* HEADER */}
-      <div>
-        <h2 className="text-2xl font-semibold">Overview</h2>
-        <p className="text-white/60 text-sm mt-1">
-          Monitor failures, trends, and system health
-        </p>
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
+          <p className="text-white/50 text-sm mt-1">
+            Monitor failures, trends, and system health
+          </p>
+        </div>
+
+        {/* FILTERS */}
+        <div className="flex gap-3">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-md">
+            <span className="text-white/40 text-xs">From</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent text-sm outline-none text-white [color-scheme:dark]"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-md">
+            <span className="text-white/40 text-xs">To</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent text-sm outline-none text-white [color-scheme:dark]"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="mt-6 flex gap-4 items-center">
-
-  <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-md">
-    <span className="text-white/50 text-sm">From</span>
-    <input
-      type="date"
-      value={startDate}
-      onChange={(e) => setStartDate(e.target.value)}
-      className="bg-transparent text-sm outline-none text-white [color-scheme:dark]"
-    />
-  </div>
-
-  <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-md">
-    <span className="text-white/50 text-sm">To</span>
-    <input
-      type="date"
-      value={endDate}
-      onChange={(e) => setEndDate(e.target.value)}
-      className="bg-transparent text-sm outline-none text-white [color-scheme:dark]"
-    />
-  </div>
-
-</div>
-
-      {/* STATS CARDS */}
+      {/* STATS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <div className="p-5 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-sm text-white/60">Total Failures</p>
-          <h3 className="text-2xl font-semibold mt-2 text-red-400">
+        <div className="p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
+          <p className="text-xs text-white/50">Total Failures</p>
+          <h3 className="text-3xl font-semibold mt-2 text-red-400">
             {totalFailures}
           </h3>
         </div>
 
-        <div className="p-5 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-sm text-white/60">Success Rate</p>
-          <h3 className="text-2xl font-semibold mt-2 text-green-400">
+        <div className="p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
+          <p className="text-xs text-white/50">Success Rate</p>
+          <h3 className="text-3xl font-semibold mt-2 text-green-400">
             {successRate}%
           </h3>
         </div>
 
-        <div className="p-5 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-sm text-white/60">Avg MTTR</p>
-          <h3 className="text-2xl font-semibold mt-2">--</h3>
+        <div className="p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
+          <p className="text-xs text-white/50">Avg MTTR</p>
+          <h3 className="text-3xl font-semibold mt-2">
+            {mttr}
+          </h3>
         </div>
       </div>
 
-      {/* CHART SECTION */}
+      {/* CHART */}
       <div className="mt-10 p-6 rounded-xl border border-white/10 bg-white/5">
-        <h3 className="text-lg font-semibold mb-4">Failure Trends</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold tracking-tight">
+            Failure Trends
+          </h3>
+          <span className="text-xs text-white/40">
+            {filteredData.length} data points
+          </span>
+        </div>
 
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredData}>
-              <CartesianGrid stroke="rgba(255,255,255,0.1)" />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" />
 
-              <XAxis dataKey="date" stroke="#888" fontSize={12} />
+              <XAxis dataKey="date" stroke="#777" fontSize={12} />
 
-              <YAxis stroke="#888" fontSize={12} />
+              <YAxis stroke="#777" fontSize={12} />
 
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#111",
+                  backgroundColor: "#0f0f0f",
                   border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "8px",
                 }}
               />
 

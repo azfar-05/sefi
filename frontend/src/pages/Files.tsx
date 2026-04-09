@@ -1,11 +1,12 @@
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
+import { useFilter } from "../context/FilterContext";
 
 export default function Files() {
   const [files, setFiles] = useState<any[]>([]);
-  const [sortKey, setSortKey] = useState<"failures" | "changes">("failures");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(true);
+
+  const { developer } = useFilter();
 
   useEffect(() => {
     fetch("http://localhost:5001/api/files/failure-prone")
@@ -15,6 +16,7 @@ export default function Files() {
           file: f.path,
           failures: Number(f.failure_count),
           changes: Number(f.total_changes),
+          developer: f.developer || null,
         }));
         setFiles(formatted);
         setLoading(false);
@@ -25,91 +27,103 @@ export default function Files() {
       });
   }, []);
 
-  const sortedFiles = [...files].sort((a, b) => {
-    const valueA = a[sortKey];
-    const valueB = b[sortKey];
+  const filteredFiles = developer
+  ? files.filter((f) => {
+      if (!f.developer) return false;
 
-    if (sortOrder === "asc") return valueA - valueB;
-    return valueB - valueA;
-  });
+      return (
+        f.developer.toLowerCase().trim() ===
+        developer.toLowerCase().trim()
+      );
+    })
+  : files;
+  // 🔹 simple top file (no sorting UI, just internal)
+  const topFile =
+    filteredFiles.length > 0
+      ? filteredFiles.reduce((prev, curr) =>
+          curr.failures > prev.failures ? curr : prev
+        )
+      : null;
+
+  const truncate = (path: string) => {
+    if (path.length < 50) return path;
+    return "..." + path.slice(-45);
+  };
 
   return (
     <DashboardLayout>
-      <h2 className="text-2xl font-semibold">Failure-Prone Files</h2>
+      {/* HEADER */}
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Failure-Prone Files
+        </h2>
+        <p className="text-white/50 text-sm mt-1">
+          Files contributing most to system instability
+        </p>
+      </div>
 
-      {/* LOADING STATE */}
-      {loading && (
-        <p className="text-white/50 mt-4">Loading...</p>
+      {/* INSIGHT */}
+      {!loading && topFile && (
+        <div className="mt-6 p-5 rounded-xl border border-white/10 bg-white/5">
+          <p className="text-xs text-white/50">Highest Failure Impact</p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-white/80">
+              {truncate(topFile.file)}
+            </p>
+            <span className="text-sm font-semibold text-white">
+              {topFile.failures}
+            </span>
+          </div>
+        </div>
       )}
 
+      {/* TABLE */}
       <div className="mt-6 border border-white/10 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-white/5 text-white/60">
+          <thead className="bg-white/5 text-white/40 text-xs uppercase tracking-wide">
             <tr>
               <th className="text-left px-4 py-3">File</th>
-
-              {/* FAILURES */}
-              <th
-                className="text-left px-4 py-3 cursor-pointer hover:text-white"
-                onClick={() => {
-                  if (sortKey === "failures") {
-                    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                  } else {
-                    setSortKey("failures");
-                    setSortOrder("desc");
-                  }
-                }}
-              >
-                Failures{" "}
-                {sortKey === "failures" &&
-                  (sortOrder === "asc" ? "↑" : "↓")}
-              </th>
-
-              {/* CHANGES */}
-              <th
-                className="text-left px-4 py-3 cursor-pointer hover:text-white"
-                onClick={() => {
-                  if (sortKey === "changes") {
-                    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                  } else {
-                    setSortKey("changes");
-                    setSortOrder("desc");
-                  }
-                }}
-              >
-                Change Count{" "}
-                {sortKey === "changes" &&
-                  (sortOrder === "asc" ? "↑" : "↓")}
-              </th>
+              <th className="text-left px-4 py-3">Failures</th>
+              <th className="text-left px-4 py-3">Changes</th>
             </tr>
           </thead>
 
           <tbody>
-            {/* EMPTY STATE */}
-            {!loading && sortedFiles.length === 0 && (
+            {loading && (
               <tr>
-                <td
-                  colSpan={3}
-                  className="text-center py-6 text-white/50"
-                >
+                <td colSpan={3} className="text-center py-6 text-white/50">
+                  Loading...
+                </td>
+              </tr>
+            )}
+
+            {!loading && filteredFiles.length === 0 && (
+              <tr>
+                <td colSpan={3} className="text-center py-6 text-white/50">
                   No data available
                 </td>
               </tr>
             )}
 
-            {sortedFiles.map((f) => (
+            {filteredFiles.map((f) => (
               <tr
                 key={f.file}
-                className="border-t border-white/10 hover:bg-white/5"
+                className="border-t border-white/10 hover:bg-white/5 transition"
               >
-                <td className="px-4 py-3">{f.file}</td>
+                {/* FILE */}
+                <td className="px-4 py-3 font-mono text-xs text-white/80">
+                  {truncate(f.file)}
+                </td>
 
-                <td className="px-4 py-3 text-red-400">
-                  {f.failures > 10 ? "🔥 " : ""}
+                {/* FAILURES */}
+                <td className="px-4 py-3 text-white font-medium">
                   {f.failures}
                 </td>
 
-                <td className="px-4 py-3">{f.changes}</td>
+                {/* CHANGES */}
+                <td className="px-4 py-3 text-white/70">
+                  {f.changes}
+                </td>
               </tr>
             ))}
           </tbody>
